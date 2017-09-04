@@ -1,0 +1,116 @@
+%div.success-submission.hide
+  %h2 Referral Form Successfully Received
+  %br
+  %span{style: 'font-size: 14px'} Thank you for your referral. A Dane Street representative will be in touch with you shortly. If you have any questions, please email us at <a href='mailto:intake@danestreet.com.'>intake@danestreet.com.</a> Please use your claim number as a refererence.
+  %br
+  %br
+  = link_to 'Return to Home', root_url
+%div.form-submission
+  %h2{style: 'text-align:center'} New Referral Form Submission
+  %fieldset{style: 'width: 550px; margin: 0 auto; padding-bottom:20px'}
+    %legend Documents / Medical Records
+    %div.spinner-content
+      Sending documents...
+      %div.spinner
+        %div.rect1
+        %div.rect2
+        %div.rect3
+        %div.rect4
+        %div.rect5
+    = form_tag(submit_referral_form_upload_files_path, method: :post, multipart: true, id: 'submit-referral-form') do
+      = file_field_tag :intake_files, :multiple => true, name: 'intake_files[]'
+      %p Choose a file or drag it here.
+      %div.filenames{style:'margin-bottom:10px'}
+      = submit_tag 'Send', class: 'btn btn-primary'
+      = button_tag 'Remove', type: :reset, class: 'btn btn-default'
+  %div{style:'clear:both; margin-bottom: 30px;'}
+
+:javascript
+  $(document).ready(function(){
+    var files = null;
+    var $spinner = $(".spinner-content");
+
+    $('[type="reset"]').click(function(){
+      location.reload();
+    })
+
+    $('#intake_files').change(function () {
+      files = null;
+      var $listFiles = $('#submit-referral-form .filenames');
+      $('#submit-referral-form p').text(this.files.length + " file(s) selected.");
+      $listFiles.empty();
+      for (var i = 0; i < this.files.length; i++) {
+        $listFiles.append($('<div><strong>'+ (i+1) + '</strong>. ' + this.files[i].name +'</div>'));
+      }
+    });
+
+    $('#submit-referral-form').submit(function(e){
+      e.preventDefault();
+      if (!files){
+        files = document.getElementById("intake_files").files;
+      }
+      
+      if(files.length == 0){
+        alert('No file selected.');
+        return false;
+      }
+      $('[type="submit"]').attr('disabled', true);
+      $spinner.css('display','block');
+      // $(this)[0].submit();
+      var formData = new FormData();
+      for (var x = 0; x < files.length; x++) {
+        formData.append("intake_files[]",files[x]);
+      }
+     
+      $.ajax({
+        url: '/referrals/submit_referral_form/upload_files',
+        type: "POST",
+        data: formData,
+        success: function(data) {
+          $('.success-submission').show();
+          $('.form-submission').hide();
+        },
+        error: function(data) {
+          alert('There was a server error, Please try again.')
+        },
+        cache: false,
+        contentType: false,
+        processData: false
+      });
+    });
+
+    function init() {
+      // Set the drop-event handlers.
+      var dropArea = document.getElementById("intake_files");
+      dropArea.addEventListener("drop", dropHandler, false);
+      dropArea.addEventListener("dragover", doNothing, false);
+    }
+    function dropHandler(event){
+      // Use our doNothing() function to prevent default processing. 
+      doNothing(event);
+      // Get the file(s) that are dropped.
+      var filelist =  event.dataTransfer.files;
+      if (!filelist) return;  // if null, exit now
+      var filecount = filelist.length;  // get number of dropped files
+
+      if (filecount > 0) 
+      {
+        var dropArea = document.getElementById("intake_files");
+        files = filelist;
+        var $listFiles = $('#submit-referral-form .filenames');
+        $('#submit-referral-form p').text(files.length + " file(s) selected.");
+        $listFiles.empty();
+        for (var i = 0; i < files.length; i++) {
+          $listFiles.append($('<div><strong>'+ (i+1) + '</strong>. ' + files[i].name +'</div>'));
+        }
+      } 
+    }
+    // Prevents the event from continuing so our handlers can process the event.
+    function doNothing(event){
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    init();
+  });
+
